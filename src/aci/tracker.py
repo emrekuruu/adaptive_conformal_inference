@@ -93,6 +93,9 @@ class ACITracker:
             weighted_err = np.dot(w, np.array(self._err_history))
             self._alphat = self._alphat + self._gamma * (self._alpha - weighted_err)
 
+        # Keep alpha_t in a valid quantile range for downstream conformal logic.
+        self._alphat = float(np.clip(self._alphat, 0.0, 1.0))
+
         return self._alphat
 
     def reset(self) -> None:
