@@ -26,6 +26,29 @@ jobs:
         with:
           python-version: "3.x"
 
+      - name: Set package version from release tag
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+
+          tag = "${{ github.event.release.tag_name }}"
+          version = re.sub(r"^v", "", tag)
+          if not re.fullmatch(r"\d+\.\d+\.\d+([.-][A-Za-z0-9]+)?", version):
+              raise SystemExit(f"Unsupported tag format: {tag}")
+
+          pyproject = pathlib.Path("pyproject.toml")
+          text = pyproject.read_text(encoding="utf-8")
+          updated = re.sub(
+              r'(?m)^version\s*=\s*"[^"]+"$',
+              f'version = "{version}"',
+              text,
+              count=1,
+          )
+          pyproject.write_text(updated, encoding="utf-8")
+          print(f"Set pyproject version to {version} from tag {tag}")
+          PY
+
       - name: Build release distributions
         run: |
           # NOTE: put your own distribution build steps here.

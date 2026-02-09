@@ -5,9 +5,14 @@ Implementation of Gibbs & Candès (NeurIPS 2021).
 https://arxiv.org/abs/2106.00170
 """
 
+from importlib.metadata import PackageNotFoundError, version
+
 from aci.tracker import ACITracker
 
-__version__ = "0.2.0"
+try:
+    __version__ = version("adaptive-conformal-inference")
+except PackageNotFoundError:
+    __version__ = "0.0.0"
 
 __all__ = [
     "ACITracker",
