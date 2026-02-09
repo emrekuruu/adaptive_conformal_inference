@@ -98,6 +98,14 @@ Green points are hits, red points are misses.
 
 <img src="figures/simple_example.png" alt="Simple ACI vs Fixed demo" width="980">
 
+The script also saves the alpha trajectory:
+
+<img src="figures/simple_example_alpha.png" alt="ACI alpha trajectory vs fixed alpha" width="980">
+
+How to interpret alpha movement:
+- If `alpha_t` goes down, misses were too frequent. Intervals widen to recover coverage.
+- If `alpha_t` goes up, misses were too rare. Intervals shrink to avoid over-conservative coverage.
+
 ## Citation
 
 ```bibtex

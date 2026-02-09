@@ -113,6 +113,8 @@ def main() -> None:
 
     cov_aci = np.mean([d["hit"] for d in hist_aci]) if hist_aci else 0.0
     cov_fixed = np.mean([d["hit"] for d in hist_fixed]) if hist_fixed else 0.0
+    rounds = np.array([d["round"] for d in hist_aci])
+    alpha_aci = np.array(tracker.alpha_history)
 
     fig, axes = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
     plot_observation_intervals(axes[0], hist_aci, "ACI Interval", cov_aci)
@@ -124,6 +126,20 @@ def main() -> None:
     )
     plt.tight_layout()
     plt.savefig("figures/simple_example.png", dpi=300)
+    plt.close(fig)
+
+    # Separate alpha trajectory plot.
+    fig_alpha, ax_alpha = plt.subplots(figsize=(14, 3.5))
+    ax_alpha.plot(rounds, alpha_aci, color="#1f3aff", linewidth=1.5, label=r"ACI $\alpha_t$")
+    ax_alpha.axhline(alpha, color="#ff3b30", linestyle="--", linewidth=1.3, label=f"Fixed alpha={alpha:.2f}")
+    ax_alpha.set_title("ACI Alpha Trajectory vs Fixed Alpha")
+    ax_alpha.set_xlabel("Round")
+    ax_alpha.set_ylabel(r"$\alpha$")
+    ax_alpha.grid(True, alpha=0.3)
+    ax_alpha.legend(loc="upper right")
+    plt.tight_layout()
+    plt.savefig("figures/simple_example_alpha.png", dpi=300)
+    plt.close(fig_alpha)
 
 if __name__ == "__main__":
     main()
