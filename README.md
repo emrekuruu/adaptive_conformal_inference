@@ -41,19 +41,39 @@ for t in range(T):
 | `aci.tracker.ACITracker` | Core alpha update (Simple and Momentum rules) |
 
 Non-essential forecasting/data pipelines are intentionally kept in `examples/`:
-- `examples/volatility.py` (GARCH volatility example)
+- `examples/figure1/` (self-contained Figure 1 example files)
+- `examples/figure2/` (self-contained Figure 2 example files)
 - `examples/quantile_reg.py` (CQR regression example)
-- `examples/utils.py` (example-only data and plotting utilities)
 
 ## Reproducing Paper Figures
 
 ```bash
 # Figure 1: Volatility prediction with normalized score (4 stocks)
-python examples/reproduce_figure1.py
+python examples/figure1/reproduce.py
 
 # Figure 2: Volatility prediction with unnormalized score (4 stocks)
-python examples/reproduce_figure2.py
+python examples/figure2/reproduce.py
 ```
+
+## Figure Comparisons
+
+### Figure 1 (Normalized Score)
+
+| Our reproduction | Paper figure |
+|---|---|
+| <img src="figures/figure1.png" alt="Our Figure 1" width="520"> | <img src="figures/figure_1_original.png" alt="Paper Figure 1" width="640"> |
+
+- Our Figure 1 follows the same overall panel behavior but is more sensitive to data/modeling differences.
+- Largest visible gaps are in local oscillations and average-coverage line levels for some tickers.
+
+### Figure 2 (Unnormalized Score)
+
+| Our reproduction | Paper figure |
+|---|---|
+| <img src="figures/figure2.png" alt="Our Figure 2" width="520"> | <img src="figures/figure_2_original.png" alt="Paper Figure 2" width="640"> |
+
+- Our Figure 2 is visually much closer to the paper than Figure 1.
+- Remaining differences are mostly in exact timing/depth of dips and slight baseline shifts.
 
 ## Citation
 
