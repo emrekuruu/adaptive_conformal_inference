@@ -7,7 +7,7 @@ https://arxiv.org/abs/2106.00170
 
 from importlib.metadata import PackageNotFoundError, version
 
-from aci.tracker import ACITracker
+from aci.aci import ACI
 
 try:
     __version__ = version("adaptive-conformal-inference")
@@ -15,5 +15,5 @@ except PackageNotFoundError:
     __version__ = "0.0.0"
 
 __all__ = [
-    "ACITracker",
+    "ACI",
 ]

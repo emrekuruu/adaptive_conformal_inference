@@ -50,7 +50,7 @@ def run_single_stock(name: str, config: dict) -> dict:
     dates = data["dates"]
     print(f"  Downloaded {len(returns)} daily returns")
 
-    alpha_seq, err_aci, err_fixed = garch_conformal_forecasting(
+    _, err_aci, err_fixed = garch_conformal_forecasting(
         returns,
         alpha=ALPHA,
         gamma=GAMMA,
@@ -79,7 +79,6 @@ def run_single_stock(name: str, config: dict) -> dict:
         "cov_fixed": cov_fixed,
         "cov_bernoulli": cov_bernoulli,
         "cov_dates": cov_dates,
-        "alpha_seq": alpha_seq,
         "avg_cov_aci": 1 - err_aci.mean(),
         "avg_cov_fixed": 1 - err_fixed.mean(),
     }

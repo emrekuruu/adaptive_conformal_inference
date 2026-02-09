@@ -2,7 +2,10 @@
 
 `adaptive-conformal-inference` is a Python library for **Adaptive Conformal Inference (ACI)**.
 
-Its main job is to provide a clean, model-agnostic ACI tracker (`ACITracker`) that updates online miscoverage (`alpha_t`) from feedback, so prediction intervals can adapt under distribution shift.
+Its main job is to provide a clean, model-agnostic **online ACI object** (`ACI`) that:
+- takes point predictions,
+- issues conformal intervals, and
+- updates adaptively from feedback (`y_true`).
 
 This repository also contains example scripts to:
 - reproduce figures from the original ACI paper, and
@@ -29,36 +32,87 @@ pip install adaptive-conformal-inference[examples]
 
 ## Core Usage
 
-The library API is intentionally minimal:
-- `aci.ACITracker(alpha, gamma, method="simple"|"momentum")`
-- call `update(err_t)` each round with `err_t in {0,1}`
-- read `alpha_t` for the next interval quantile level
+### Initialization Parameters
 
-Minimal example:
+| Parameter | Default | What it controls and how to tune it |
+|---|---|---|
+| `alpha` | required | Target miss rate. `alpha=0.1` means target coverage is about `90%`. Lower `alpha` makes intervals more conservative (wider on average). |
+| `gamma` | required | Adaptation speed for `alpha_t`. Increase if environment changes quickly and coverage lags. Decrease if `alpha_t` oscillates too much. |
+| `lookback` | `500` | Calibration memory for score quantiles. Larger is more stable but slower to react. Smaller reacts faster but can be noisy. |
+| `method` | `"simple"` | Alpha update rule. `"simple"` reacts directly to each miss/hit. `"momentum"` smooths updates using recent history. |
+| `momentum_bw` | `0.95` | Used only for `method="momentum"`. Closer to `1.0` means smoother, longer memory. Lower values emphasize very recent rounds. |
+| `score_fn` | `None` | Conformity score function `score_fn(y_true, y_pred) -> nonnegative float`. Default is absolute error `abs(y_true - y_pred)`. Choose this to match your task's notion of error. |
+| `clip_alpha` | `True` | Keeps `alpha_t` in `[0, 1]`. Recommended `True` for most users to avoid invalid quantile levels. |
+
+### Conformity Score (`score_fn`)
+
+`score_fn` defines what "bad prediction" means for your problem. ACI adapts coverage for that score.
+
+- Default (`None`): absolute error, good for many regression tasks.
+- Relative/percentage error:
+  - useful when prediction scale changes a lot over time.
+  - often better for volatility-like tasks.
+- Asymmetric score:
+  - useful if underprediction is more costly than overprediction (or vice versa).
+
+`score_fn` must return a nonnegative finite number.
+
+### Tuning Guide
+
+- Coverage below target for long periods:
+  - increase `gamma` (faster correction), or decrease `lookback` (faster calibration updates).
+- Coverage far above target (intervals too wide):
+  - decrease `gamma`, or increase `lookback` for less reactive widening.
+- `alpha_t` is very jumpy:
+  - decrease `gamma`, or use `method="momentum"` with high `momentum_bw` (for example `0.95` to `0.99`).
+- Regime changes happen often:
+  - use smaller `lookback` and/or larger `gamma`.
+- Regime is mostly stable:
+  - use larger `lookback` and smaller `gamma` for smoother intervals.
+
+
+### API Reference
+
+The package exposes one class: `aci.ACI`.
+
+| Method / Property | What it does in practice |
+|---|---|
+| `issue(y_pred)` | Call this once per round after producing your model prediction. Returns `(lower, upper)` interval for that round, using current `alpha_t` and recent calibration scores. |
+| `observe(y_true, err_t_override=None)` | Call this once the true outcome is available. Computes hit/miss, updates `alpha_t`, and returns diagnostics (`hit`, `err_t`, `score_t`, `alpha_used`, `alpha_next`, `qhat_t`). |
+| `reset()` | Restarts the object to its initial state (`alpha_t=alpha`, empty histories). Useful between datasets/episodes. |
+| `alpha_t` | Current adaptive miss-rate level that will be used for the next `issue(...)`. If it goes down, intervals usually widen; if it goes up, intervals usually narrow. |
+| `alpha_history` | Historical `alpha_t` values. Use this to inspect adaptation behavior and tune `gamma`/`lookback`. |
+| `err_history` | Historical miss indicators (`1=miss`, `0=hit`). Use mean of this to estimate realized miss rate. |
+| `score_history` | Historical conformity scores from your `score_fn`. Useful for debugging whether score design matches your task. |
+| `has_pending_prediction` | `True` after `issue(...)` and before `observe(...)`. Helps enforce correct online call order. |
+
+### Online Workflow
+
+Use this order every round:
+
+1. Compute your point prediction `y_pred`.
+2. Call `issue(y_pred)` to get interval bounds.
+3. Observe the true value `y_true`.
+4. Call `observe(y_true)` to update ACI state.
+
 
 ```python
-from aci import ACITracker
+from aci import ACI
 
-# Core: model-agnostic alpha tracker
-tracker = ACITracker(alpha=0.1, gamma=0.005)
+# One object handles interval issuance + online alpha adaptation
+aci = ACI(alpha=0.1, gamma=0.005, lookback=500, method="simple")
 
 for t in range(T):
-    # Your own conformal set construction here...
-    err_t = 1.0 if y_true not in prediction_set else 0.0
-    tracker.update(err_t)
-    next_alpha = tracker.alpha_t  # use this for the next prediction set
+    y_pred_t = model_predict(x_t)      # your forecaster
+    lower, upper = aci.issue(y_pred_t) # C_hat_t(alpha_t)
+
+    y_true_t = observe_truth()
+    out = aci.observe(y_true_t)        # updates alpha_t online
+
+    hit = out["hit"]                   # per-round coverage signal
+    alpha_next = aci.alpha_t           # alpha to be used on the NEXT round
 ```
 
-## Package Scope
-
-| Module | Description |
-|--------|-------------|
-| `aci.tracker.ACITracker` | Core alpha update (Simple and Momentum rules) |
-
-Non-essential forecasting/data pipelines are intentionally kept in `examples/`:
-- `examples/figure1/` (self-contained Figure 1 example files)
-- `examples/figure2/` (self-contained Figure 2 example files)
-- `examples/simple_example.py` (ACI vs fixed interval demo)
 
 ## Reproduce Paper Results
 
@@ -93,6 +147,8 @@ python examples/simple_example.py
 This demo uses a simple synthetic dataset and simple predictor, then compares:
 - ACI adaptive intervals (online-updated `alpha_t`)
 - Fixed intervals (constant `alpha`)
+- Left half of the timeline is intentionally hard (frequent misses).
+- Right half is intentionally easy (rare misses).
 
 Green points are hits, red points are misses.
 
@@ -103,8 +159,8 @@ The script also saves the alpha trajectory:
 <img src="figures/simple_example_alpha.png" alt="ACI alpha trajectory vs fixed alpha" width="980">
 
 How to interpret alpha movement:
-- If `alpha_t` goes down, misses were too frequent. Intervals widen to recover coverage.
-- If `alpha_t` goes up, misses were too rare. Intervals shrink to avoid over-conservative coverage.
+- In the hard half, `alpha_t` should go down: misses are frequent, so intervals widen.
+- In the easy half, `alpha_t` should go up: misses are rare, so intervals shrink.
 
 ## Citation
 

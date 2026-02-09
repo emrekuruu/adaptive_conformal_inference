@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 from arch import arch_model
 
-from aci import ACITracker
+from aci import ACI
 
 
 def garch_conformal_forecasting(
@@ -34,14 +34,32 @@ def garch_conformal_forecasting(
     start_up = max(start_up, lookback)
     n_steps = T - start_up + 1
 
-    tracker = ACITracker(
-        alpha,
-        gamma,
+    if score == "normalized":
+        # Run ACI in transformed space:
+        # z_t = V_t / sigma2_hat_t, prediction is 1.0
+        # so |z_t - 1| equals the normalized conformity score.
+        score_fn = lambda y_true, y_pred: abs(y_true - y_pred)
+    else:
+        score_fn = lambda y_true, y_pred: abs(y_true - y_pred)
+
+    aci = ACI(
+        alpha=alpha,
+        gamma=gamma,
+        lookback=lookback,
         method=update_method,
         momentum_bw=momentum_bw,
+        score_fn=score_fn,
         clip_alpha=False,
     )
-    scores = np.zeros(n_steps)
+    fixed = ACI(
+        alpha=alpha,
+        gamma=0.0,
+        lookback=lookback,
+        method="simple",
+        score_fn=score_fn,
+        clip_alpha=False,
+    )
+
     err_seq_aci = np.zeros(n_steps)
     err_seq_fixed = np.zeros(n_steps)
 
@@ -65,26 +83,28 @@ def garch_conformal_forecasting(
         v_t = returns[t - 1] ** 2
 
         if score == "normalized":
-            scores[idx] = abs(v_t - sigma2_hat) / sigma2_hat
+            y_pred_ci = 1.0
+            y_true_ci = float(v_t / max(float(sigma2_hat), 1e-12))
         else:
-            scores[idx] = abs(v_t - sigma2_hat)
+            y_pred_ci = float(sigma2_hat)
+            y_true_ci = float(v_t)
 
-        if idx > 0:
-            recent_start = max(idx - lookback + 1, 0)
-            recent_scores = scores[recent_start: idx]
-            alphat = tracker.alpha_t
-            if alphat >= 1:
-                err_seq_aci[idx] = 1.0
-            elif alphat <= 0:
-                err_seq_aci[idx] = 0.0
-            else:
-                err_seq_aci[idx] = float(scores[idx] > np.quantile(recent_scores, 1 - alphat))
-            err_seq_fixed[idx] = float(scores[idx] > np.quantile(recent_scores, 1 - alpha))
+        aci.issue(y_pred_ci)
+        fixed.issue(y_pred_ci)
 
-        tracker.update(err_seq_aci[idx])
+        # Match original reproduction initialization (first err_t set to 0).
+        if idx == 0:
+            out_aci = aci.observe(y_true_ci, err_t_override=0.0)
+            out_fixed = fixed.observe(y_true_ci, err_t_override=0.0)
+        else:
+            out_aci = aci.observe(y_true_ci)
+            out_fixed = fixed.observe(y_true_ci)
+
+        err_seq_aci[idx] = float(out_aci["err_t"])
+        err_seq_fixed[idx] = float(out_fixed["err_t"])
 
         if t % 100 == 0:
             print(f"Done {t} steps")
 
-    alpha_sequence = tracker.alpha_history
+    alpha_sequence = aci.alpha_history
     return alpha_sequence, err_seq_aci, err_seq_fixed
