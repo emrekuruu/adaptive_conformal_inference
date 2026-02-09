@@ -55,7 +55,7 @@ python examples/figure1/reproduce.py
 python examples/figure2/reproduce.py
 ```
 
-## Figure Comparisons
+## Reproduced Figures From the Paper 
 
 ### Figure 1 (Normalized Score)
 
@@ -63,26 +63,21 @@ python examples/figure2/reproduce.py
 |---|---|
 | <img src="figures/figure1.png" alt="Our Figure 1" width="520"> | <img src="figures/figure_1_original.png" alt="Paper Figure 1" width="640"> |
 
-- Our Figure 1 follows the same overall panel behavior but is more sensitive to data/modeling differences.
-- Largest visible gaps are in local oscillations and average-coverage line levels for some tickers.
-
 ### Figure 2 (Unnormalized Score)
 
 | Our reproduction | Paper figure |
 |---|---|
 | <img src="figures/figure2.png" alt="Our Figure 2" width="520"> | <img src="figures/figure_2_original.png" alt="Paper Figure 2" width="640"> |
 
-- Our Figure 2 is visually much closer to the paper than Figure 1.
-- Remaining differences are mostly in exact timing/depth of dips and slight baseline shifts.
-
 ## Citation
 
 ```bibtex
-@inproceedings{gibbs2021adaptive,
-  title={Adaptive Conformal Inference Under Distribution Shift},
-  author={Gibbs, Isaac and Cand{\`e}s, Emmanuel J},
-  booktitle={Advances in Neural Information Processing Systems},
-  volume={34},
-  year={2021}
-}
+  @article{gibbs2021adaptive,
+    title={Adaptive conformal inference under distribution shift},
+    author={Gibbs, Isaac and Candes, Emmanuel},
+    journal={Advances in Neural Information Processing Systems},
+    volume={34},
+    pages={1660--1672},
+    year={2021}
+  }
 ```
