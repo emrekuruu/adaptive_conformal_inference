@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "adaptive-conformal-inference"
+version = "0.2.0"
+description = "Adaptive Conformal Inference Under Distribution Shift"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [
+    {name = "Emre Kuru"},
+]
+keywords = ["conformal inference", "distribution shift", "uncertainty quantification", "prediction sets"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "numpy>=1.24",
+]
+
+[project.optional-dependencies]
+examples = [
+    "arch>=6.0",
+    "matplotlib>=3.7",
+    "statsmodels>=0.14",
+    "yfinance>=0.2",
+]
+dev = [
+    "arch>=6.0",
+    "statsmodels>=0.14",
+    "pytest>=7.0",
+    "matplotlib>=3.7",
+    "yfinance>=0.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/emrekuru/aci-python"
+Paper = "https://arxiv.org/abs/2106.00170"
+
+[tool.setuptools.packages.find]
+where = ["src"]
