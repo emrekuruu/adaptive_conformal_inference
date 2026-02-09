@@ -30,7 +30,7 @@ class ACITracker:
     """
 
     def __init__(self, alpha: float, gamma: float, method: str = "simple",
-                 momentum_bw: float = 0.95):
+                 momentum_bw: float = 0.95, clip_alpha: bool = True):
         if method not in ("simple", "momentum"):
             raise ValueError(f"method must be 'simple' or 'momentum', got '{method}'")
 
@@ -38,6 +38,7 @@ class ACITracker:
         self._gamma = gamma
         self._method = method
         self._momentum_bw = momentum_bw
+        self._clip_alpha = clip_alpha
 
         self._alphat = alpha
         self._err_history: list[float] = []
@@ -93,8 +94,9 @@ class ACITracker:
             weighted_err = np.dot(w, np.array(self._err_history))
             self._alphat = self._alphat + self._gamma * (self._alpha - weighted_err)
 
-        # Keep alpha_t in a valid quantile range for downstream conformal logic.
-        self._alphat = float(np.clip(self._alphat, 0.0, 1.0))
+        # Optional clipping for applications that require bounded quantile levels.
+        if self._clip_alpha:
+            self._alphat = float(np.clip(self._alphat, 0.0, 1.0))
 
         return self._alphat
 

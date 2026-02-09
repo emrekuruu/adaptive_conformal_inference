@@ -22,10 +22,10 @@ LOOKBACK = 1250
 COVERAGE_WINDOW = 500
 
 STOCKS = {
-    "Nvidia": {"ticker": "NVDA", "start": "1999-01-01", "end": "2021-06-01"},
-    "AMD": {"ticker": "AMD", "start": "1994-01-01", "end": "2021-06-01"},
-    "BlackBerry": {"ticker": "BB", "start": "1999-01-01", "end": "2021-06-01"},
-    "Fannie Mae": {"ticker": "FNMA", "start": "1994-01-01", "end": "2021-06-01"},
+    "Nvidia": {"ticker": "NVDA", "start": "1999-01-01", "end": "2020-12-31"},
+    "AMD": {"ticker": "AMD", "start": "1994-01-01", "end": "2020-12-31"},
+    "BlackBerry": {"ticker": "BB", "start": "1999-01-01", "end": "2020-12-31"},
+    "Fannie Mae": {"ticker": "FNMA", "start": "1994-01-01", "end": "2020-12-31"},
 }
 
 # Fixed panel x-axis ranges to keep Figure 1 and Figure 2 aligned.
@@ -55,6 +55,7 @@ def run_single_stock(name: str, config: dict) -> dict:
         alpha=ALPHA,
         gamma=GAMMA,
         lookback=LOOKBACK,
+        update_method="simple",
         score="unnormalized",
     )
 
@@ -109,18 +110,35 @@ def plot_results(results: list[dict], output_path: str):
         ax.axhline(res["avg_cov_fixed"], color="#ff3b30", linestyle=(0, (4, 4)), linewidth=2.0)
         ax.axhline(1 - ALPHA, color="black", linestyle=(0, (4, 4)), linewidth=2.0)
 
-        ax.set_title(res["name"], loc="left", fontsize=17, fontweight="bold", pad=10)
+        ax.text(
+            0.02,
+            0.96,
+            res["name"],
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=15,
+            fontweight="bold",
+        )
         if i % 2 == 0:
             ax.set_ylabel("Local Coverage Level")
         xmin, xmax = X_LIMITS[res["name"]]
         ax.set_xlim(np.datetime64(xmin), np.datetime64(xmax))
-        ax.set_ylim(0.33, 1.05)
-        ax.xaxis.set_major_locator(mdates.YearLocator(base=5))
+        ax.set_ylim(0.3, 1.05)
+        if res["name"] in {"AMD", "Fannie Mae"}:
+            years = (2000, 2005, 2010, 2015, 2020)
+        else:
+            years = (2005, 2010, 2015, 2020)
+        xticks = [np.datetime64(f"{year}-01-01") for year in years]
+        ax.set_xticks(xticks)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+        ax.set_yticks([0.4, 0.6, 0.8, 1.0])
+        for spine in ax.spines.values():
+            spine.set_visible(False)
         ax.grid(True, color="white", linewidth=1.1)
-        ax.minorticks_on()
-        ax.grid(which="minor", color="white", linewidth=0.6, alpha=0.7)
-        ax.tick_params(axis="x", rotation=0)
+        ax.minorticks_off()
+        ax.tick_params(axis="x", rotation=0, top=False)
+        ax.tick_params(axis="y", right=False)
 
     legend_handles = [
         Line2D([0], [0], color="#1f3aff", lw=2, label="Adaptive Alpha"),

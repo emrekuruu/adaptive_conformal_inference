@@ -34,7 +34,13 @@ def garch_conformal_forecasting(
     start_up = max(start_up, lookback)
     n_steps = T - start_up + 1
 
-    tracker = ACITracker(alpha, gamma, method=update_method, momentum_bw=momentum_bw)
+    tracker = ACITracker(
+        alpha,
+        gamma,
+        method=update_method,
+        momentum_bw=momentum_bw,
+        clip_alpha=False,
+    )
     scores = np.zeros(n_steps)
     err_seq_aci = np.zeros(n_steps)
     err_seq_fixed = np.zeros(n_steps)
