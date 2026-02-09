@@ -31,6 +31,9 @@ class ACI:
         Momentum bandwidth (used when method="momentum").
     score_fn : callable or None
         Conformity score S_t(y_true, y_pred). Defaults to abs(y_true - y_pred).
+    set_fn : callable or None
+        Function that builds a prediction set from (y_pred, qhat). If None,
+        uses the default symmetric interval [y_pred - qhat, y_pred + qhat].
     clip_alpha : bool
         Whether to clip alpha_t to [0, 1].
     """
@@ -42,7 +45,8 @@ class ACI:
         lookback: int = 500,
         method: str = "simple",
         momentum_bw: float = 0.95,
-        score_fn: Callable[[float, float], float] | None = None,
+        score_fn: Callable[[float, object], float] | None = None,
+        set_fn: Callable[[object, float], object] | None = None,
         clip_alpha: bool = True,
     ):
         if method not in ("simple", "momentum"):
@@ -59,6 +63,7 @@ class ACI:
 
         self._lookback = int(lookback)
         self._score_fn = score_fn if score_fn is not None else self._default_score
+        self._set_fn = set_fn if set_fn is not None else self._default_set
 
         self._score_history: list[float] = []
         self._err_history: list[float] = []
@@ -67,8 +72,13 @@ class ACI:
         self._round = 0
 
     @staticmethod
-    def _default_score(y_true: float, y_pred: float) -> float:
-        return abs(y_true - y_pred)
+    def _default_score(y_true: float, y_pred: object) -> float:
+        return abs(float(y_true) - float(y_pred))
+
+    @staticmethod
+    def _default_set(y_pred: object, qhat: float) -> tuple[float, float]:
+        y = float(y_pred)
+        return y - qhat, y + qhat
 
     @property
     def alpha_t(self) -> float:
@@ -145,21 +155,25 @@ class ACI:
 
         return self._alphat
 
-    def issue(self, y_pred: float) -> tuple[float, float]:
-        """Issue prediction interval C-hat_t(alpha_t) around y_pred.
+    def issue(self, y_pred: object) -> object:
+        """Issue prediction set C-hat_t(alpha_t) from y_pred.
 
         Returns
         -------
-        (lower, upper) : tuple[float, float]
-            Issued interval bounds for the current round.
+        object
+            Output of set_fn(y_pred, qhat). By default this is a tuple
+            (lower, upper).
         """
         if self._issued is not None:
             raise RuntimeError("A prediction is already pending. Call observe(y_true) first.")
 
         qhat = self._qhat()
-        y_pred = float(y_pred)
-        lower = y_pred - qhat
-        upper = y_pred + qhat
+        prediction_set = self._set_fn(y_pred, qhat)
+        lower = None
+        upper = None
+        if isinstance(prediction_set, tuple) and len(prediction_set) == 2:
+            lower = float(prediction_set[0])
+            upper = float(prediction_set[1])
 
         self._issued = {
             "round": self._round,
@@ -168,8 +182,9 @@ class ACI:
             "upper": upper,
             "alpha_used": self.alpha_t,
             "qhat": qhat,
+            "prediction_set": prediction_set,
         }
-        return lower, upper
+        return prediction_set
 
     def observe(self, y_true: float) -> dict:
         """Observe truth for last issued interval and update alpha_t.
@@ -183,18 +198,17 @@ class ACI:
             raise RuntimeError("No pending prediction. Call issue(y_pred) before observe(y_true).")
 
         y_true = float(y_true)
-        y_pred = float(self._issued["y_pred"])
-        lower = float(self._issued["lower"])
-        upper = float(self._issued["upper"])
+        y_pred = self._issued["y_pred"]
+        lower = self._issued["lower"]
+        upper = self._issued["upper"]
         alpha_used = float(self._issued["alpha_used"])
         qhat = float(self._issued["qhat"])
+        prediction_set = self._issued["prediction_set"]
         round_id = int(self._issued["round"])
 
         score = float(self._score_fn(y_true, y_pred))
         if not np.isfinite(score):
             raise ValueError(f"score_fn returned non-finite value: {score}")
-        if score < 0:
-            raise ValueError(f"score_fn must return a non-negative score, got {score}")
 
         # Paper-consistent miscoverage event:
         # err_t = 1{ S_t > Q_hat_t(1 - alpha_t) }.
@@ -217,6 +231,7 @@ class ACI:
             "round": round_id,
             "y_true": y_true,
             "y_pred": y_pred,
+            "prediction_set": prediction_set,
             "lower": lower,
             "upper": upper,
             "hit": hit,

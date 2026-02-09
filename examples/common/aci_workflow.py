@@ -2,7 +2,13 @@
 
 import numpy as np
 
-from aci import ACI
+from aci import (
+    ACI,
+    absolute_error_score,
+    relative_error_score,
+    relative_interval_set,
+    symmetric_interval_set,
+)
 
 
 def run_aci_vs_fixed(
@@ -21,8 +27,12 @@ def run_aci_vs_fixed(
     if len(y_true) != len(y_pred):
         raise ValueError("y_true and y_pred must have the same length")
 
-    # In normalized mode we transform to z_t = V_t / sigma2_hat_t and predict 1.0.
-    score_fn = lambda a, b: abs(a - b)
+    if score == "normalized":
+        score_fn = relative_error_score
+        set_fn = relative_interval_set
+    else:
+        score_fn = absolute_error_score
+        set_fn = symmetric_interval_set
 
     aci = ACI(
         alpha=alpha,
@@ -31,6 +41,7 @@ def run_aci_vs_fixed(
         method=update_method,
         momentum_bw=momentum_bw,
         score_fn=score_fn,
+        set_fn=set_fn,
         clip_alpha=False,
     )
     fixed = ACI(
@@ -39,6 +50,7 @@ def run_aci_vs_fixed(
         lookback=lookback,
         method="simple",
         score_fn=score_fn,
+        set_fn=set_fn,
         clip_alpha=False,
     )
 
@@ -47,12 +59,8 @@ def run_aci_vs_fixed(
     err_seq_fixed = np.zeros(n_steps)
 
     for idx in range(n_steps):
-        if score == "normalized":
-            y_pred_ci = 1.0
-            y_true_ci = float(y_true[idx] / max(float(y_pred[idx]), 1e-12))
-        else:
-            y_pred_ci = float(y_pred[idx])
-            y_true_ci = float(y_true[idx])
+        y_pred_ci = float(y_pred[idx])
+        y_true_ci = float(y_true[idx])
 
         aci.issue(y_pred_ci)
         fixed.issue(y_pred_ci)

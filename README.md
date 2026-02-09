@@ -41,7 +41,8 @@ pip install adaptive-conformal-inference[examples]
 | `lookback` | `500` | Calibration memory for score quantiles. Larger is more stable but slower to react. Smaller reacts faster but can be noisy. |
 | `method` | `"simple"` | Alpha update rule. `"simple"` reacts directly to each miss/hit. `"momentum"` smooths updates using recent history. |
 | `momentum_bw` | `0.95` | Used only for `method="momentum"`. Closer to `1.0` means smoother, longer memory. Lower values emphasize very recent rounds. |
-| `score_fn` | `None` | Conformity score function `score_fn(y_true, y_pred) -> nonnegative float`. Default is absolute error `abs(y_true - y_pred)`. Choose this to match your task's notion of error. |
+| `score_fn` | `None` | Conformity score function `score_fn(y_true, y_pred) -> float`. Default is absolute error `abs(y_true - y_pred)`. Choose this to match your task's notion of error. |
+| `set_fn` | `None` | Prediction-set builder `set_fn(y_pred, qhat)`. Default is symmetric interval `[y_pred-qhat, y_pred+qhat]`. Use this for CQR/relative/non-additive set construction. |
 | `clip_alpha` | `True` | Keeps `alpha_t` in `[0, 1]`. Recommended `True` for most users to avoid invalid quantile levels. |
 
 ### Conformity Score (`score_fn`)
@@ -55,7 +56,36 @@ pip install adaptive-conformal-inference[examples]
 - Asymmetric score:
   - useful if underprediction is more costly than overprediction (or vice versa).
 
-`score_fn` must return a nonnegative finite number.
+`score_fn` must return a finite number. (Some valid scores, such as CQR score, can be negative inside the base quantile band.)
+
+Built-in helpers (paper-style workflows):
+
+- Scores:
+  - `absolute_error_score`
+  - `relative_error_score`
+  - `cqr_score`
+- Set builders:
+  - `symmetric_interval_set`
+  - `relative_interval_set`
+  - `cqr_interval_set`
+
+Example (CQR-style):
+
+```python
+from aci import ACI, cqr_score, cqr_interval_set
+
+aci = ACI(
+    alpha=0.1,
+    gamma=0.005,
+    lookback=500,
+    score_fn=cqr_score,
+    set_fn=cqr_interval_set,
+)
+
+# y_pred_t is (q_low_t, q_high_t)
+prediction_set = aci.issue(y_pred_t)
+out = aci.observe(y_true_t)
+```
 
 ### Tuning Guide
 
@@ -77,7 +107,7 @@ The package exposes one class: `aci.ACI`.
 
 | Method / Property | What it does in practice |
 |---|---|
-| `issue(y_pred)` | Call this once per round after producing your model prediction. Returns `(lower, upper)` interval for that round, using current `alpha_t` and recent calibration scores. |
+| `issue(y_pred)` | Call this once per round after producing your model prediction. Returns `set_fn(y_pred, qhat_t)`. With default `set_fn`, this is `(lower, upper)`. |
 | `observe(y_true)` | Call this once the true outcome is available. Computes conformity score and miscoverage event, updates `alpha_t`, and returns diagnostics (`hit`, `err_t`, `score_t`, `alpha_used`, `alpha_next`, `qhat_t`). |
 | `reset()` | Restarts the object to its initial state (`alpha_t=alpha`, empty histories). Useful between datasets/episodes. |
 | `alpha_t` | Current adaptive miss-rate level that will be used for the next `issue(...)`. If it goes down, intervals usually widen; if it goes up, intervals usually narrow. |
@@ -154,7 +184,9 @@ python examples/figure2/reproduce.py
 |---|---|
 | <img src="figures/figure2.png" alt="Our Figure 2" width="520"> | <img src="figures/figure_2_original.png" alt="Paper Figure 2" width="640"> |
 
-## ACI Demo (vs Fixed Baseline)
+## Examples
+
+### 1) Simple Example (Default ACI)
 
 Run:
 
@@ -162,23 +194,42 @@ Run:
 python examples/simple_example.py
 ```
 
-This demo uses a simple synthetic dataset and simple predictor, then compares:
-- ACI adaptive intervals (online-updated `alpha_t`)
-- Fixed intervals (constant `alpha`)
-- Left half of the timeline is intentionally hard (frequent misses).
-- Right half is intentionally easy (rare misses).
+What this example does:
+- Uses default ACI score/set functions (absolute-error score + symmetric interval).
+- Compares adaptive ACI against a fixed-alpha baseline.
+- Visualizes per-round hits (green) and misses (red).
 
-Green points are hits, red points are misses.
+What to observe:
+- ACI and fixed both recalibrate with recent scores, but only ACI updates `alpha_t`.
+- When misses become frequent, ACI tends to lower `alpha_t` and widen intervals.
+- When misses are rare, ACI tends to raise `alpha_t` and narrow intervals.
 
 <img src="figures/simple_example.png" alt="Simple ACI vs Fixed demo" width="980">
-
-The script also saves the alpha trajectory:
-
 <img src="figures/simple_example_alpha.png" alt="ACI alpha trajectory vs fixed alpha" width="980">
 
-How to interpret alpha movement:
-- In the hard half, `alpha_t` should go down: misses are frequent, so intervals widen.
-- In the easy half, `alpha_t` should go up: misses are rare, so intervals shrink.
+### 2) CQR Asymmetric Example
+
+Run:
+
+```bash
+python examples/cqr_asymmetric_example.py
+```
+
+What this example does:
+- Demonstrates custom ACI functions using:
+  - `cqr_score`
+  - `cqr_interval_set`
+- Compares:
+  - ACI with CQR functions (asymmetric interval behavior)
+  - ACI with default functions (symmetric interval behavior)
+
+What to observe:
+- With CQR functions, lower and upper sides can have different widths (asymmetric intervals).
+- With default functions, intervals remain symmetric around a single center prediction.
+- ACI still uses a single shared `alpha_t` for interval coverage in both cases.
+
+<img src="figures/cqr_asymmetric_example.png" alt="CQR asymmetric vs default ACI example" width="980">
+<img src="figures/cqr_asymmetric_example_alpha.png" alt="CQR vs default alpha trajectory" width="980">
 
 ## Citation
 
