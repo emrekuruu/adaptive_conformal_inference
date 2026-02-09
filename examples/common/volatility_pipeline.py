@@ -38,6 +38,4 @@ def garch_conformal_forecasting(
         update_method=update_method,
         momentum_bw=momentum_bw,
         score=score,
-        first_err_zero=True,
     )
-

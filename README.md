@@ -78,13 +78,15 @@ The package exposes one class: `aci.ACI`.
 | Method / Property | What it does in practice |
 |---|---|
 | `issue(y_pred)` | Call this once per round after producing your model prediction. Returns `(lower, upper)` interval for that round, using current `alpha_t` and recent calibration scores. |
-| `observe(y_true, err_t_override=None)` | Call this once the true outcome is available. Computes hit/miss, updates `alpha_t`, and returns diagnostics (`hit`, `err_t`, `score_t`, `alpha_used`, `alpha_next`, `qhat_t`). |
+| `observe(y_true)` | Call this once the true outcome is available. Computes conformity score and miscoverage event, updates `alpha_t`, and returns diagnostics (`hit`, `err_t`, `score_t`, `alpha_used`, `alpha_next`, `qhat_t`). |
 | `reset()` | Restarts the object to its initial state (`alpha_t=alpha`, empty histories). Useful between datasets/episodes. |
 | `alpha_t` | Current adaptive miss-rate level that will be used for the next `issue(...)`. If it goes down, intervals usually widen; if it goes up, intervals usually narrow. |
 | `alpha_history` | Historical `alpha_t` values. Use this to inspect adaptation behavior and tune `gamma`/`lookback`. |
 | `err_history` | Historical miss indicators (`1=miss`, `0=hit`). Use mean of this to estimate realized miss rate. |
 | `score_history` | Historical conformity scores from your `score_fn`. Useful for debugging whether score design matches your task. |
 | `has_pending_prediction` | `True` after `issue(...)` and before `observe(...)`. Helps enforce correct online call order. |
+
+`err_t` follows the paper directly: `err_t = 1` when `score_t > qhat_t`, else `0`.
 
 ### Online Workflow
 

@@ -171,17 +171,8 @@ class ACI:
         }
         return lower, upper
 
-    def observe(self, y_true: float, err_t_override: float | None = None) -> dict:
+    def observe(self, y_true: float) -> dict:
         """Observe truth for last issued interval and update alpha_t.
-
-        Parameters
-        ----------
-        y_true : float
-            Realized outcome for the pending prediction.
-        err_t_override : float or None
-            Optional override for miscoverage indicator (0.0 or 1.0).
-            Useful for exact reproduction protocols that prescribe
-            initialization behavior for early rounds.
 
         Returns
         -------
@@ -205,13 +196,17 @@ class ACI:
         if score < 0:
             raise ValueError(f"score_fn must return a non-negative score, got {score}")
 
-        hit = lower <= y_true <= upper
-        err_t = 0.0 if hit else 1.0
-        if err_t_override is not None:
-            err_t = float(err_t_override)
-            if err_t not in (0.0, 1.0):
-                raise ValueError(f"err_t_override must be 0.0 or 1.0, got {err_t_override}")
-            hit = err_t == 0.0
+        # Paper-consistent miscoverage event:
+        # err_t = 1{ S_t > Q_hat_t(1 - alpha_t) }.
+        # If alpha_t is allowed outside [0, 1], mirror original implementation
+        # boundary behavior for quantile-level saturation.
+        if alpha_used >= 1.0:
+            err_t = 1.0
+        elif alpha_used <= 0.0:
+            err_t = 0.0
+        else:
+            err_t = float(score > qhat)
+        hit = err_t == 0.0
         alpha_next = float(self._update_alpha(err_t))
         self._score_history.append(score)
 

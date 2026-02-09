@@ -14,7 +14,6 @@ def run_aci_vs_fixed(
     update_method: str = "simple",
     momentum_bw: float = 0.95,
     score: str = "normalized",
-    first_err_zero: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Run adaptive ACI and fixed-alpha baseline on aligned predictions/outcomes."""
     if score not in ("normalized", "unnormalized"):
@@ -58,16 +57,11 @@ def run_aci_vs_fixed(
         aci.issue(y_pred_ci)
         fixed.issue(y_pred_ci)
 
-        if first_err_zero and idx == 0:
-            out_aci = aci.observe(y_true_ci, err_t_override=0.0)
-            out_fixed = fixed.observe(y_true_ci, err_t_override=0.0)
-        else:
-            out_aci = aci.observe(y_true_ci)
-            out_fixed = fixed.observe(y_true_ci)
+        out_aci = aci.observe(y_true_ci)
+        out_fixed = fixed.observe(y_true_ci)
 
         err_seq_aci[idx] = float(out_aci["err_t"])
         err_seq_fixed[idx] = float(out_fixed["err_t"])
 
     alpha_sequence = aci.alpha_history
     return alpha_sequence, err_seq_aci, err_seq_fixed
-
