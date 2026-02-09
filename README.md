@@ -124,6 +124,22 @@ python examples/figure1/reproduce.py
 python examples/figure2/reproduce.py
 ```
 
+### Reproduction File Map
+
+- `examples/figure1/reproduce.py`
+  Runs the full Figure 1 reproduction (normalized score), loads stock data, computes local coverage, and renders `figures/figure1.png`.
+- `examples/figure2/reproduce.py`
+  Runs the full Figure 2 reproduction (unnormalized score), loads stock data, computes local coverage, and renders `figures/figure2.png`.
+- `examples/common/data.py`
+  Shared data utilities: stock download (`fetch_stock_data`) and local coverage computation (`local_coverage`).
+- `examples/common/garch_forecaster.py`
+  Shared forecasting logic: rolling GARCH(1,1) fitting and one-step variance predictions.
+- `examples/common/aci_workflow.py`
+  Shared ACI evaluation loop: runs adaptive ACI vs fixed-alpha baseline on aligned `(y_pred, y_true)` sequences.
+- `examples/common/volatility_pipeline.py`
+  Shared end-to-end pipeline that combines GARCH forecasts with the ACI workflow; used by both figure scripts.
+
+
 ### Figure 1 (Normalized Score)
 
 | Our reproduction | Paper figure |

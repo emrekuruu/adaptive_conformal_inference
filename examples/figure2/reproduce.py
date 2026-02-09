@@ -11,9 +11,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.lines import Line2D
+from pathlib import Path
+import sys
 
-from volatility import garch_conformal_forecasting
-from utils import local_coverage, fetch_stock_data
+_EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
+if str(_EXAMPLES_ROOT) not in sys.path:
+    sys.path.insert(0, str(_EXAMPLES_ROOT))
+
+from common.data import local_coverage, fetch_stock_data
+from common.volatility_pipeline import garch_conformal_forecasting
 
 # Paper parameters
 ALPHA = 0.1

@@ -1,4 +1,4 @@
-"""Utility functions for ACI examples."""
+"""Shared data and evaluation helpers for examples."""
 
 import numpy as np
 
@@ -27,3 +27,4 @@ def fetch_stock_data(ticker: str, start: str, end: str) -> dict:
         "volatility": volatility,
         "dates": dates[1:],
     }
+
