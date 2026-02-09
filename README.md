@@ -43,7 +43,6 @@ for t in range(T):
 Non-essential forecasting/data pipelines are intentionally kept in `examples/`:
 - `examples/figure1/` (self-contained Figure 1 example files)
 - `examples/figure2/` (self-contained Figure 2 example files)
-- `examples/quantile_reg.py` (CQR regression example)
 
 ## Reproducing Paper Figures
 
