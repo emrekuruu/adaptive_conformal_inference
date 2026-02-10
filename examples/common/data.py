@@ -1,4 +1,4 @@
-"""Shared data and evaluation helpers for examples."""
+"""Shared stock data and evaluation helpers for examples."""
 
 import numpy as np
 
@@ -10,14 +10,19 @@ def local_coverage(err_seq: np.ndarray, window: int = 500) -> np.ndarray:
     return 1.0 - rolling_err
 
 
-def fetch_stock_data(ticker: str, start: str, end: str) -> dict:
-    """Download stock data and compute returns and realized volatility."""
+def fetch_stock_data(
+    ticker: str,
+    start: str,
+    end: str,
+) -> dict:
+    """Download stock open-price data and compute returns/volatility."""
     import yfinance as yf
 
     # Use raw daily open prices to better align with the paper's setup.
     data = yf.download(ticker, start=start, end=end, auto_adjust=False, progress=False)
     prices = data["Open"].values.flatten()
     dates = data.index
+
     returns = np.diff(prices) / prices[:-1]
     volatility = returns ** 2
 
@@ -27,4 +32,3 @@ def fetch_stock_data(ticker: str, start: str, end: str) -> dict:
         "volatility": volatility,
         "dates": dates[1:],
     }
-

@@ -150,26 +150,46 @@ for t in range(T):
 
 ```bash
 # Figure 1: Volatility prediction with normalized score (4 stocks)
-python examples/figure1/reproduce.py
+python examples/figure1.py
 
 # Figure 2: Volatility prediction with unnormalized score (4 stocks)
-python examples/figure2/reproduce.py
+python examples/figure2.py
+
+# Figure 4: Daily open prices (4 stocks)
+python examples/figure4.py
+
+# Figure 5: Stock alpha_t trajectories (simple update)
+python examples/figure5.py
+
+# Figure 6: Stock alpha_t trajectories (momentum update)
+python examples/figure6.py
+
+# Figure 9: Additional-stock local coverage (8 stocks)
+python examples/figure9.py
 ```
 
 ### Reproduction File Map
 
-- `examples/figure1/reproduce.py`
+- `examples/figure1.py`
   Runs the full Figure 1 reproduction (normalized score), loads stock data, computes local coverage, and renders `figures/figure1.png`.
-- `examples/figure2/reproduce.py`
+- `examples/figure2.py`
   Runs the full Figure 2 reproduction (unnormalized score), loads stock data, computes local coverage, and renders `figures/figure2.png`.
+- `examples/figure4.py`
+  Plots daily open prices for Nvidia, AMD, BlackBerry, and Fannie Mae, and renders `figures/figure4.png`.
+- `examples/figure5.py`
+  Plots stock-market `alpha_t` trajectories using simple ACI update, and renders `figures/figure5.png`.
+- `examples/figure6.py`
+  Plots stock-market `alpha_t` trajectories using momentum ACI update (`bw=0.95`), and renders `figures/figure6.png`.
+- `examples/figure9.py`
+  Runs the additional-stocks local coverage experiment from Appendix A.4, and renders `figures/figure9.png`.
 - `examples/common/data.py`
-  Shared data utilities: stock download (`fetch_stock_data`) and local coverage computation (`local_coverage`).
+  Shared data utilities for stock examples: stock loading and local coverage computation.
 - `examples/common/garch_forecaster.py`
   Shared forecasting logic: rolling GARCH(1,1) fitting and one-step variance predictions.
 - `examples/common/aci_workflow.py`
   Shared ACI evaluation loop: runs adaptive ACI vs fixed-alpha baseline on aligned `(y_pred, y_true)` sequences.
 - `examples/common/volatility_pipeline.py`
-  Shared end-to-end pipeline that combines GARCH forecasts with the ACI workflow; used by both figure scripts.
+  Shared end-to-end pipeline that combines GARCH forecasts with the ACI workflow; used by stock figure scripts.
 
 
 ### Figure 1 (Normalized Score)
@@ -184,7 +204,31 @@ python examples/figure2/reproduce.py
 |---|---|
 | <img src="figures/figure2.png" alt="Our Figure 2" width="520"> | <img src="figures/figure_2_original.png" alt="Paper Figure 2" width="640"> |
 
-## Examples
+### Figure 4 (Daily Open Prices)
+
+| Our reproduction | Paper figure |
+|---|---|
+| <img src="figures/figure4.png" alt="Our Figure 4" width="460"> | <img src="figures/figure_4_original.png" alt="Paper Figure 4" width="620"> |
+
+### Figure 5 (Stock Alpha Trajectories, Simple Update)
+
+| Our reproduction | Paper figure |
+|---|---|
+| <img src="figures/figure5.png" alt="Our Figure 5" width="400"> | <img src="figures/figure_5_original.png" alt="Paper Figure 5" width="620"> |
+
+### Figure 6 (Stock Alpha Trajectories, Momentum Update)
+
+| Our reproduction | Paper figure |
+|---|---|
+| <img src="figures/figure6.png" alt="Our Figure 6" width="440"> | <img src="figures/figure_6_original.png" alt="Paper Figure 6" width="620"> |
+
+### Figure 9 (Additional Stocks Local Coverage)
+
+| Our reproduction | Paper figure |
+|---|---|
+| <img src="figures/figure9.png" alt="Our Figure 9" width="540"> | <img src="figures/figure_9_original.png" alt="Paper Figure 9" width="520"> |
+
+## Additional Examples
 
 ### 1) Simple Example (Default ACI)
 

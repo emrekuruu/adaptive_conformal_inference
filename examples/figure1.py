@@ -1,8 +1,9 @@
 """
-Reproduce Figure 2 from Gibbs & Candès (2021).
+Reproduce Figure 1 from Gibbs & Candès (2021).
 
-Same as Figure 1 but using the **unnormalized** conformity score
-S̃_t = |V_t - σ̂²_t|, which leads to worse coverage properties.
+Local coverage frequencies for adaptive conformal (blue) and fixed-alpha (red)
+for volatility prediction using the **normalized** conformity score
+S_t = |V_t - σ̂²_t| / σ̂²_t.
 
 Stocks: Nvidia, AMD, BlackBerry, Fannie Mae.
 """
@@ -14,7 +15,7 @@ from matplotlib.lines import Line2D
 from pathlib import Path
 import sys
 
-_EXAMPLES_ROOT = Path(__file__).resolve().parents[1]
+_EXAMPLES_ROOT = Path(__file__).resolve().parent
 if str(_EXAMPLES_ROOT) not in sys.path:
     sys.path.insert(0, str(_EXAMPLES_ROOT))
 
@@ -42,16 +43,16 @@ X_LIMITS = {
     "Fannie Mae": ("1999-01-01", "2020-12-31"),
 }
 
-# Deterministic Bernoulli baseline for reproducible visuals.
-RNG = np.random.default_rng(42)
-
-
 def run_single_stock(name: str, config: dict) -> dict:
     print(f"\n{'='*60}")
     print(f"Processing {name} ({config['ticker']})")
     print(f"{'='*60}")
 
-    data = fetch_stock_data(config["ticker"], config["start"], config["end"])
+    data = fetch_stock_data(
+        config["ticker"],
+        config["start"],
+        config["end"],
+    )
     returns = data["returns"]
     dates = data["dates"]
     print(f"  Downloaded {len(returns)} daily returns")
@@ -62,20 +63,19 @@ def run_single_stock(name: str, config: dict) -> dict:
         gamma=GAMMA,
         lookback=LOOKBACK,
         update_method="simple",
-        score="unnormalized",
+        score="normalized",
     )
 
     # Compute local coverage
     cov_aci = local_coverage(err_aci, window=COVERAGE_WINDOW)
     cov_fixed = local_coverage(err_fixed, window=COVERAGE_WINDOW)
 
-    # Bernoulli(alpha) baseline
-    bernoulli_seq = RNG.binomial(1, ALPHA, size=len(err_aci))
-    cov_bernoulli = local_coverage(bernoulli_seq, window=COVERAGE_WINDOW)
-
-    # Align dates
+    # Align dates: ACI starts at index `lookback` in returns,
+    # then local_coverage trims COVERAGE_WINDOW//2 from each end.
     start_up = max(100, LOOKBACK)
-    aci_dates = dates[start_up - 1:]
+    # Dates corresponding to ACI output
+    aci_dates = dates[start_up - 1:]  # length = T - start_up + 1
+    # Dates for local coverage (centered window trims (window-1) total)
     offset = (COVERAGE_WINDOW - 1) // 2
     cov_dates = aci_dates[offset: offset + len(cov_aci)]
 
@@ -83,7 +83,6 @@ def run_single_stock(name: str, config: dict) -> dict:
         "name": name,
         "cov_aci": cov_aci,
         "cov_fixed": cov_fixed,
-        "cov_bernoulli": cov_bernoulli,
         "cov_dates": cov_dates,
         "avg_cov_aci": 1 - err_aci.mean(),
         "avg_cov_fixed": 1 - err_fixed.mean(),
@@ -109,10 +108,10 @@ def plot_results(results: list[dict], output_path: str):
         ax.set_facecolor("#EBEBEB")
         ax.plot(dates, res["cov_aci"], color="#1f3aff", linewidth=1.1, label="Adaptive Alpha")
         ax.plot(dates, res["cov_fixed"], color="#ff3b30", linewidth=1.1, label="Fixed Alpha")
-        ax.plot(dates, res["cov_bernoulli"], color="#bfbfbf", linewidth=1.0, alpha=0.9, label="Bernoulli Sequence")
 
         ax.axhline(res["avg_cov_aci"], color="#1f3aff", linestyle=(0, (4, 4)), linewidth=2.0)
         ax.axhline(res["avg_cov_fixed"], color="#ff3b30", linestyle=(0, (4, 4)), linewidth=2.0)
+
         ax.axhline(1 - ALPHA, color="black", linestyle=(0, (4, 4)), linewidth=2.0)
 
         ax.text(
@@ -129,7 +128,7 @@ def plot_results(results: list[dict], output_path: str):
             ax.set_ylabel("Local Coverage Level")
         xmin, xmax = X_LIMITS[res["name"]]
         ax.set_xlim(np.datetime64(xmin), np.datetime64(xmax))
-        ax.set_ylim(0.3, 1.05)
+        ax.set_ylim(0.80, 1.00)
         if res["name"] in {"AMD", "Fannie Mae"}:
             years = (2000, 2005, 2010, 2015, 2020)
         else:
@@ -137,7 +136,7 @@ def plot_results(results: list[dict], output_path: str):
         xticks = [np.datetime64(f"{year}-01-01") for year in years]
         ax.set_xticks(xticks)
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-        ax.set_yticks([0.4, 0.6, 0.8, 1.0])
+        ax.set_yticks([0.85, 0.90, 0.95])
         for spine in ax.spines.values():
             spine.set_visible(False)
         ax.grid(True, color="white", linewidth=1.1)
@@ -148,7 +147,6 @@ def plot_results(results: list[dict], output_path: str):
     legend_handles = [
         Line2D([0], [0], color="#1f3aff", lw=2, label="Adaptive Alpha"),
         Line2D([0], [0], color="#ff3b30", lw=2, label="Fixed Alpha"),
-        Line2D([0], [0], color="#bfbfbf", lw=2, label="Bernoulli Sequence"),
     ]
     fig.legend(
         handles=legend_handles,
@@ -174,4 +172,4 @@ if __name__ == "__main__":
         print(f"  Avg coverage — ACI: {result['avg_cov_aci']:.3f}, "
               f"Fixed: {result['avg_cov_fixed']:.3f}")
 
-    plot_results(all_results, "figures/figure2.png")
+    plot_results(all_results, "figures/figure1.png")
