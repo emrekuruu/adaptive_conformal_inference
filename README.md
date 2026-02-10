@@ -1,22 +1,28 @@
 # adaptive-conformal-inference
 
-`adaptive-conformal-inference` is a Python library for **Adaptive Conformal Inference (ACI)**.
+[![PyPI version](https://img.shields.io/pypi/v/adaptive-conformal-inference.svg)](https://pypi.org/project/adaptive-conformal-inference/)
+[![Python versions](https://img.shields.io/pypi/pyversions/adaptive-conformal-inference.svg)](https://pypi.org/project/adaptive-conformal-inference/)
+[![License](https://img.shields.io/pypi/l/adaptive-conformal-inference.svg)](LICENSE)
+[![Paper](https://img.shields.io/badge/arXiv-2106.00170-b31b1b.svg)](https://arxiv.org/abs/2106.00170)
 
-Its main job is to provide a clean, model-agnostic **online ACI object** (`ACI`) that:
-- takes point predictions,
-- issues conformal intervals, and
-- updates adaptively from feedback (`y_true`).
 
-This repository also contains example scripts to:
-- reproduce figures from the original ACI paper, and
-- demonstrate ACI behavior versus a fixed conformal baseline.
+Out-of-the-box Python library for **Adaptive Conformal Inference (ACI)**.
 
-Implementation is based on:
+It provides a clean, model-agnostic online object (`ACI`) that:
+- takes your model prediction,
+- issues a conformal prediction set,
+- updates adaptively after observing the true outcome.
 
-> Isaac Gibbs and Emmanuel J. Cand&egrave;s. *Adaptive Conformal Inference Under Distribution Shift.* NeurIPS 2021.
+This repo also includes scripts that reproduce key paper figures and practical demos of ACI vs fixed baselines.
+
+Based on:
+
+> Isaac Gibbs and Emmanuel J. Cand&egrave;s. *Adaptive Conformal Inference Under Distribution Shift.* NeurIPS 2021.  
 > [arXiv:2106.00170](https://arxiv.org/abs/2106.00170)
 
-ACI adapts conformal prediction sets to distribution shift by tracking a single parameter that adjusts the quantile level online, provably achieving target coverage over long time intervals.
+Project links:
+- `PyPI`: https://pypi.org/project/adaptive-conformal-inference/
+- `GitHub`: https://github.com/emrekuru/aci-python
 
 ## Installation
 
